@@ -152,6 +152,7 @@ jobs:
 
       - name: Compile the kernel [ ${{ inputs.kernel_version }} ]
         uses: ophub/amlogic-s9xxx-armbian@main
+        continue-on-error: true
         if: ${{ steps.mapped.outputs.status }} == 'success' && !cancelled()
         with:
           build_target: kernel
@@ -167,7 +168,6 @@ jobs:
 
       - name: Check for kernel artifacts
         id: check_files
-        # 使用 always() 来确保无论上一步是否失败，此步骤都会运行
         if: always()
         run: |
           echo "Checking for .tar.gz files in directory: ${{ env.PACKAGED_OUTPUTPATH }}"
