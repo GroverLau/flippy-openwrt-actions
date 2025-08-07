@@ -165,9 +165,26 @@ jobs:
           compress_format: ${{ inputs.compress_format }}
           silent_log: ${{ inputs.silent_log }}
 
+      - name: Check for kernel artifacts
+        id: check_files
+        # 使用 always() 来确保无论上一步是否失败，此步骤都会运行
+        if: always()
+        run: |
+          echo "Checking for .tar.gz files in directory: ${{ env.PACKAGED_OUTPUTPATH }}"
+          # 检查目录是否存在，并且目录中是否存在 .tar.gz 文件
+          if [ -d "${{ env.PACKAGED_OUTPUTPATH }}" ] && [ -n "$(ls -A ${{ env.PACKAGED_OUTPUTPATH }}/*.tar.gz 2>/dev/null)" ]; then
+            echo "Artifact files found. Setting output 'files_exist' to true."
+            echo "files_exist=true" >> $GITHUB_OUTPUT
+          else
+            echo "No artifact files found. Setting output 'files_exist' to false."
+            echo "files_exist=false" >> $GITHUB_OUTPUT
+          fi
+
+      # 修改后的上传步骤
       - name: Upload Kernel to Release
         uses: ncipollo/release-action@main
-        if: ${{ env.PACKAGED_STATUS }} == 'success' && !cancelled()
+        # 关键改动：if 条件不再检查 env.PACKAGED_STATUS，而是检查上一步(check_files)的输出
+        if: steps.check_files.outputs.files_exist == 'true' && !cancelled()
         with:
           tag: kernel_stable
           artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
